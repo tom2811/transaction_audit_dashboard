@@ -1,0 +1,99 @@
+<tr class="hover:bg-gray-50" id="transaction-{{ transaction.id }}">
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
+    #{{ transaction.id }}
+  </td>
+  <td
+    class="px-6 py-4 whitespace-nowrap text-sm text-left font-medium text-gray-900"
+  >
+    {{ transaction.merchant }}
+  </td>
+  <td
+    class="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-gray-900"
+  >
+    ${{ transaction.amount|floatformat:2 }}
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+    <span
+      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if transaction.status == 'completed' %}bg-green-100 text-green-800 {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800 {% else %}bg-red-100 text-red-800{% endif %}"
+    >
+      {{ transaction.status|title }}
+    </span>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+    {% if transaction.is_flagged %}
+    <span
+      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800"
+    >
+      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fill-rule="evenodd"
+          d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      Flagged
+    </span>
+    {% else %}
+    <span
+      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600"
+    >
+      Not Flagged
+    </span>
+    {% endif %}
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+    {{ transaction.approved_by.username|default:"-" }}
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+    {% if user.is_authenticated %}
+    <div class="flex justify-center items-center h-8 space-x-2">
+      {% if transaction.status == 'pending' %}
+      <button
+        class="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded"
+        hx-post="{% url 'approve_transaction' transaction.id %}"
+        hx-target="#transaction-{{ transaction.id }}"
+        hx-swap="outerHTML"
+        title="Approve Transaction"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7"
+          />
+        </svg>
+      </button>
+      {% else %}
+      <div class="w-7"></div>
+      {% endif %}
+      <button
+        class="{% if transaction.is_flagged %}bg-amber-500 hover:bg-amber-600{% else %}bg-amber-500 hover:bg-amber-600{% endif %} text-white p-1.5 rounded"
+        hx-post="{% url 'toggle_flag_transaction' transaction.id %}"
+        hx-target="#transaction-{{ transaction.id }}"
+        hx-swap="outerHTML"
+        title="{% if transaction.is_flagged %}Unflag Transaction{% else %}Flag Transaction{% endif %}"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+          />
+        </svg>
+      </button>
+    </div>
+    {% endif %}
+  </td>
+</tr>

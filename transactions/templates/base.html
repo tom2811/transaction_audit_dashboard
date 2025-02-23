@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Transaction Audit Dashboard{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX for AJAX interactions -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+    <!-- Chart.js for reporting & insights -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- CSRF Token for HTMX -->
+    {% csrf_token %}
+    <script>
+      document.body.addEventListener("htmx:configRequest", function (evt) {
+        evt.detail.headers["X-CSRFToken"] = "{{ csrf_token }}";
+      });
+    </script>
+
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="bg-gray-100">
+    <div class="flex h-screen">
+      {% if user.is_authenticated and request.path != '/accounts/login/' %}
+      <!-- Sidebar -->
+      <aside class="w-64 bg-gray-900 text-white flex flex-col h-screen">
+        <!-- Logo -->
+        <div class="p-6">
+          <h1 class="text-xl font-bold text-gray-100">Audit Dashboard</h1>
+        </div>
+
+        <hr class="border-gray-800 mx-4" />
+
+        <!-- Navigation -->
+        <nav class="flex-1 p-4">
+          <div class="space-y-2">
+            <a
+              href="{% url 'dashboard' %}"
+              class="flex items-center px-2 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors duration-150 {% if request.path == '/' %}bg-gray-800 text-white{% endif %}"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+              Dashboard
+            </a>
+
+            <a
+              href="{% url 'transaction_list' %}"
+              class="flex items-center px-2 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors duration-150 {% if 'transactions' in request.path %}bg-gray-800 text-white{% endif %}"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+              Transactions
+            </a>
+
+            <a
+              href="{% url 'reports' %}"
+              class="flex items-center px-2 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors duration-150 {% if 'reports' in request.path %}bg-gray-800 text-white{% endif %}"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              Reports
+            </a>
+          </div>
+        </nav>
+
+        <!-- User Profile - Now with mt-auto to push it to bottom -->
+        <div class="p-4 border-t border-gray-800 mt-auto">
+          {% if user.is_authenticated %}
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div
+                class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-sm font-medium text-white"
+              >
+                {{ user.username|make_list|first|upper }}
+              </div>
+              <span class="text-sm font-medium text-white">Admin</span>
+            </div>
+            <form method="post" action="{% url 'account_logout' %}">
+              {% csrf_token %}
+              <button type="submit">
+                <svg
+                  class="w-5 h-5 text-gray-400 hover:text-white transition-colors duration-150"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </aside>
+      {% endif %}
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto">
+        <div class="p-8">{% block content %}{% endblock %}</div>
+      </div>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

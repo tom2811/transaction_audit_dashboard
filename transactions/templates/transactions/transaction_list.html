@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Transactions{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex justify-between items-center">
+    <h1 class="text-2xl font-semibold text-gray-700">Transactions</h1>
+  </div>
+
+  <!-- Filters and Results Count Row -->
+  <div class="flex justify-between items-center pb-5 border-b border-gray-200">
+    <!-- Results count -->
+    {% if page_obj.paginator.count > 0 %}
+    <div>
+      <p class="text-sm text-gray-700">
+        Showing
+        <span class="font-medium">{{ page_obj.start_index }}</span>
+        to
+        <span class="font-medium">{{ page_obj.end_index }}</span>
+        of
+        <span class="font-medium">{{ page_obj.paginator.count }}</span>
+        results
+      </p>
+    </div>
+    {% endif %}
+
+    <!-- Filters -->
+    <div class="flex items-center gap-3">
+      <!-- Status Filter -->
+      <div class="relative">
+        <select 
+          class="appearance-none bg-white pl-3 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+          hx-get="{% url 'transaction_list' %}"
+          hx-trigger="change"
+          hx-target="#transaction-table"
+          hx-push-url="true"
+          name="status">
+          <option value="">All</option>
+          <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+          <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed</option>
+        </select>
+        <!-- Custom dropdown arrow -->
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Merchant Search -->
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          name="merchant"
+          class="pl-10 pr-4 py-2 w-64 text-sm border border-gray-300 rounded-lg focus:outline-none placeholder-gray-400 hover:bg-gray-50 transition-colors duration-150"
+          placeholder="Search merchants..."
+          hx-get="{% url 'transaction_list' %}"
+          hx-trigger="keyup changed delay:100ms"
+          hx-target="#transaction-table"
+          hx-push-url="true"
+          value="{{ request.GET.merchant|default:'' }}">
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction Table -->
+  <div id="transaction-table" class="bg-white shadow-sm border border-gray-200 rounded-lg">
+    {% include "transactions/partials/transaction_table.html" %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="flex justify-center items-center min-h-screen bg-gray-100">
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-lg shadow-md p-8">
+      <!-- Simple Header -->
+      <h1 class="text-2xl font-semibold text-gray-900 mb-6 text-center">Login Form</h1>
+      
+      <form method="post" action="{% url 'account_login' %}" class="space-y-6">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="text-red-600 text-sm mb-4">
+          {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Username Field -->
+        <div>
+          <label for="id_login" class="block text-gray-700 mb-1">
+            Username:
+          </label>
+          {{ form.login }}
+          {% if form.login.errors %}
+          <div class="mt-1 text-sm text-red-600">
+            {{ form.login.errors }}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Password Field -->
+        <div>
+          <label for="id_password" class="block text-gray-700 mb-1">
+            Password:
+          </label>
+          {{ form.password }}
+          {% if form.password.errors %}
+          <div class="mt-1 text-sm text-red-600">
+            {{ form.password.errors }}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Remember Me -->
+        <div class="flex items-center">
+          {{ form.remember }}
+          <label for="id_remember" class="ml-2 text-gray-700">
+            Remember Me
+          </label>
+        </div>
+
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+
+        <!-- Submit Button -->
+        <button type="submit" class="w-full py-2.5 px-4 bg-gray-900 text-white rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+          Login
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

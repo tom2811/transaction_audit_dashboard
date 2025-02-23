@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Transaction Reports{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h1 class="text-2xl font-semibold text-gray-700">Transaction Reports</h1>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Daily Volume Chart -->
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-base font-semibold text-gray-900">Daily Transaction Volume</h2>
+        <div class="text-sm text-gray-500">
+          Total Volume: ${{ total_amount|floatformat:2 }}
+        </div>
+      </div>
+      <div class="h-[300px]">
+        <canvas id="dailyVolumeChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Success Rate Chart -->
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-base font-semibold text-gray-900">Transaction Success Rate</h2>
+        <div class="text-sm text-gray-500">
+          <span class="inline-flex items-center px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+            <span class="h-2 w-2 rounded-full bg-emerald-500 mr-1"></span>
+            Target: 95%
+          </span>
+        </div>
+      </div>
+      <div class="h-[300px]">
+        <canvas id="successRateChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ daily_volume|json_script:"daily-volume-data" }}
+{{ daily_success_rate|json_script:"success-rate-data" }}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const dailyVolumeData = JSON.parse(document.getElementById('daily-volume-data').textContent);
+  const successRateData = JSON.parse(document.getElementById('success-rate-data').textContent);
+
+  // Chart.js Defaults
+  Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+  Chart.defaults.font.size = 12;
+
+  // Daily Volume Chart
+  new Chart(document.getElementById('dailyVolumeChart'), {
+    type: 'line',
+    data: {
+      labels: dailyVolumeData.map(item => new Date(item.date).toLocaleDateString()),
+      datasets: [{
+        label: 'Transaction Volume',
+        data: dailyVolumeData.map(item => item.total_amount),
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `Volume: $${context.raw.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            drawBorder: false,
+          },
+          ticks: {
+            callback: value => '$' + value.toLocaleString()
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+
+  // Success Rate Chart
+  new Chart(document.getElementById('successRateChart'), {
+    type: 'line',
+    data: {
+      labels: successRateData.map(item => new Date(item.date).toLocaleDateString()),
+      datasets: [{
+        label: 'Success Rate',
+        data: successRateData.map(item => item.success_rate),
+        borderColor: 'rgb(16, 185, 129)',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+      }, {
+        label: 'Target Rate',
+        data: Array(successRateData.length).fill(95),
+        borderColor: 'rgba(16, 185, 129, 0.5)',
+        borderDash: [5, 5],
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              if (context.datasetIndex === 0) {
+                return `Success Rate: ${context.raw.toFixed(1)}%`;
+              }
+              return `Target: ${context.raw}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          grid: {
+            drawBorder: false,
+          },
+          ticks: {
+            callback: value => value + '%'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+
+  // Time range selector functionality
+  document.getElementById('timeRange').addEventListener('change', function(e) {
+    // TODO: Implement time range filtering
+    console.log('Selected range:', e.target.value);
+  });
+});
+</script>
+{% endblock %}
+{% endblock %}
