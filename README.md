@@ -28,6 +28,17 @@ A Django-based web application for auditing financial transactions, built with D
   - Authentication required access
   - Pagination support (20 items per page)
 
+## Technical Decisions
+
+### Database Design
+
+- Indexed merchant and status fields for faster filtering and searching
+
+### Data Seeding
+- Custom management command for generating sample data
+- Creates realistic transaction patterns
+- Handles timezone-aware timestamps
+
 ## Setup Instructions
 
 ### 1. Clone the Repository
