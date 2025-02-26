@@ -2,84 +2,25 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Sum, Count, Avg, Case, When
 from django.db.models.functions import TruncDate
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView, TemplateView, View
+from django.views.generic import ListView, TemplateView, View, DetailView
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 import json
-from allauth.account.views import LoginView
 from django.db import models
 
 from .models import Transaction
 from .serializers import TransactionSerializer
 
 
-class CustomLoginView(LoginView):
-    """
-    Custom login view with template
-    """
-
-    template_name = "account/login.html"
-
-
-# Report View for transaction volumes and success rates
-def reports(request):
-    # Daily transaction volume
-    daily_volume = (
-        Transaction.objects.annotate(date=TruncDate("timestamp"))
-        .values("date")
-        .annotate(
-            total_amount=Sum("amount"),
-            transaction_count=Count("id"),
-        )
-        .order_by("-date")[:30]  # Last 30 days
-    )
-
-    # Daily success rate
-    daily_success_rate = (
-        Transaction.objects.annotate(date=TruncDate("timestamp"))
-        .values("date")
-        .annotate(
-            total_transactions=Count("id"),
-            successful_transactions=Count("id", filter=models.Q(status="completed")),
-        )
-        .order_by("-date")[:30]
-    )
-
-    # Calculate success rates as percentages
-    for day in daily_success_rate:
-        day["success_rate"] = (
-            (day["successful_transactions"] / day["total_transactions"] * 100)
-            if day["total_transactions"] > 0
-            else 0
-        )
-
-    # Calculate total amount for the period
-    total_amount = sum(day["total_amount"] for day in daily_volume)
-
-    context = {
-        "daily_volume": list(daily_volume),
-        "daily_success_rate": list(daily_success_rate),
-        "total_amount": total_amount,
-    }
-
-    return render(request, "transactions/reports.html", context)
-
-
-# API View for listing transactions
-class TransactionViewSet(ListAPIView):
-    queryset = Transaction.objects.all().order_by("-timestamp")
-    serializer_class = TransactionSerializer
-    permission_classes = [IsAuthenticated]
-
-
-# Dashboard View
 class DashboardView(LoginRequiredMixin, TemplateView):
+    """Main dashboard view showing transaction statistics"""
+
     template_name = "transactions/dashboard.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Status summary - explicitly order by status to match the chart colors
+        # Status summary with specific ordering
         status_order = ["completed", "pending", "failed"]
         status_summary = list(
             Transaction.objects.values("status")
@@ -95,7 +36,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             )
         )
 
-        # Merchant summary
+        # Top 10 merchants by transaction volume
         merchant_summary = (
             Transaction.objects.values("merchant")
             .annotate(
@@ -106,6 +47,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             .order_by("-total_amount")[:10]
         )
 
+        # Prepare data for charts
         context.update(
             {
                 "status_summary_list": status_summary,
@@ -127,8 +69,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-# Transaction List View
 class TransactionListView(LoginRequiredMixin, ListView):
+    """View for displaying and filtering transactions"""
+
     model = Transaction
     template_name = "transactions/transaction_list.html"
     context_object_name = "transactions"
@@ -155,13 +98,18 @@ class TransactionListView(LoginRequiredMixin, ListView):
         return super().render_to_response(context, **response_kwargs)
 
 
-# Approve Transaction View
 class ApproveTransactionView(LoginRequiredMixin, View):
+    """Handle transaction approval"""
+
     def post(self, request, transaction_id, *args, **kwargs):
         transaction = get_object_or_404(Transaction, id=transaction_id)
+
+        transaction._history_user = request.user
+
         transaction.status = "completed"
         transaction.approved_by = request.user
         transaction.save()
+
         return render(
             request,
             "transactions/partials/transaction_row.html",
@@ -169,14 +117,95 @@ class ApproveTransactionView(LoginRequiredMixin, View):
         )
 
 
-# Toggle Flag Transaction View
 class ToggleFlagTransactionView(LoginRequiredMixin, View):
-    def post(self, request, transaction_id, *args, **kwargs):
+    """Handle transaction flag toggling"""
+
+    def post(self, request, transaction_id):
         transaction = get_object_or_404(Transaction, id=transaction_id)
+
+        transaction._history_user = request.user
+
         transaction.is_flagged = not transaction.is_flagged
         transaction.save()
+
         return render(
             request,
             "transactions/partials/transaction_row.html",
             {"transaction": transaction},
         )
+
+
+class TransactionHistoryView(LoginRequiredMixin, DetailView):
+    """View the history records of a certain transaction record"""
+
+    model = Transaction
+    template_name = "transactions/transaction_history.html"
+    context_object_name = "transaction"
+    pk_url_kwarg = "transaction_id"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["history"] = (
+            self.object.history.all()
+            .select_related("history_user")
+            .order_by("-history_date")
+        )
+        return context
+
+
+class ReportsView(LoginRequiredMixin, TemplateView):
+    """Generate transaction reports for daily volumes and success rates"""
+
+    template_name = "transactions/reports.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Daily transaction volume
+        daily_volume = (
+            Transaction.objects.annotate(date=TruncDate("timestamp"))
+            .values("date")
+            .annotate(
+                total_amount=Sum("amount"),
+                transaction_count=Count("id"),
+            )
+            .order_by("-date")[:30]
+        )
+
+        # Daily success rate
+        daily_success_rate = (
+            Transaction.objects.annotate(date=TruncDate("timestamp"))
+            .values("date")
+            .annotate(
+                total_transactions=Count("id"),
+                successful_transactions=Count(
+                    "id", filter=models.Q(status="completed")
+                ),
+            )
+            .order_by("-date")[:30]
+        )
+
+        # Calculate success rates as percentages
+        for day in daily_success_rate:
+            day["success_rate"] = (
+                (day["successful_transactions"] / day["total_transactions"] * 100)
+                if day["total_transactions"] > 0
+                else 0
+            )
+
+        context.update(
+            {
+                "daily_volume": list(daily_volume),
+                "daily_success_rate": list(daily_success_rate),
+                "total_amount": sum(day["total_amount"] for day in daily_volume),
+            }
+        )
+        return context
+
+
+class TransactionViewSet(ListAPIView):
+    """API endpoint for listing transactions"""
+
+    queryset = Transaction.objects.all().order_by("-timestamp")
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated]

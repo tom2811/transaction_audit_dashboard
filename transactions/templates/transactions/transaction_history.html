@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction History - #{{ transaction.id }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header and Back Button -->
+  <div class="flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <a href="{% url 'transaction_list' %}" class="text-gray-500 hover:text-gray-700">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      </a>
+      <h1 class="text-2xl font-semibold text-gray-700">Transaction History</h1>
+    </div>
+    <span class="text-sm text-gray-500">Transaction #{{ transaction.id }}</span>
+  </div>
+
+  <!-- History Timeline -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="divide-y divide-gray-200">
+      {% for record in history %}
+      <div class="p-6">
+        <div class="flex items-start space-x-3">
+          <!-- Icon -->
+          <div class="flex-shrink-0 mt-0.5">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <!-- Details -->
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium text-gray-900">
+                {{ record.history_user.username|default:"-" }}
+              </p>
+              <p class="text-sm text-gray-500">
+                {{ record.history_date }}
+              </p>
+            </div>
+            <div class="mt-1 text-sm text-gray-500">
+              {% if record.history_type == '+' %}
+                <p>Transaction created with status 
+                  <span class="font-medium">{{ record.status|title }}</span>
+                </p>
+              {% elif record.history_type == '~' %}
+                {% if record.status != record.prev_record.status %}
+                  <p>Status changed to 
+                    <span class="font-medium">{{ record.status|title }}</span>
+                  </p>
+                {% elif record.is_flagged != record.prev_record.is_flagged %}
+                  <p>Flag status changed from 
+                    <span class="font-medium">{{ record.prev_record.is_flagged|yesno:"Flagged,Not Flagged" }}</span>
+                    to 
+                    <span class="font-medium">{{ record.is_flagged|yesno:"Flagged,Not Flagged" }}</span>
+                  </p>
+                {% endif %}
+              {% elif record.history_type == '-' %}
+                <p>Transaction deleted</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="p-6 text-center text-gray-500">
+        No history records found.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

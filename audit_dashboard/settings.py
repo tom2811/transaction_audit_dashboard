@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "django_htmx",
     "transactions",
+    "simple_history",
 ]
 
 REST_FRAMEWORK = {
