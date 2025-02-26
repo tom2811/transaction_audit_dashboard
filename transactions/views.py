@@ -7,6 +7,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 import json
 from django.db import models
+from django.core.exceptions import PermissionDenied
 
 from .models import Transaction
 from .serializers import TransactionSerializer
@@ -102,10 +103,11 @@ class ApproveTransactionView(LoginRequiredMixin, View):
     """Handle transaction approval"""
 
     def post(self, request, transaction_id, *args, **kwargs):
+        if not request.user.is_staff:
+            raise PermissionDenied("Only admin users can approve transactions")
+
         transaction = get_object_or_404(Transaction, id=transaction_id)
-
         transaction._history_user = request.user
-
         transaction.status = "completed"
         transaction.approved_by = request.user
         transaction.save()
@@ -121,10 +123,11 @@ class ToggleFlagTransactionView(LoginRequiredMixin, View):
     """Handle transaction flag toggling"""
 
     def post(self, request, transaction_id):
+        if not request.user.is_staff:
+            raise PermissionDenied("Only admin users can flag transactions")
+
         transaction = get_object_or_404(Transaction, id=transaction_id)
-
         transaction._history_user = request.user
-
         transaction.is_flagged = not transaction.is_flagged
         transaction.save()
 

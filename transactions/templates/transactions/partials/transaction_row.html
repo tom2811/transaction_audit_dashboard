@@ -59,8 +59,10 @@
   <!-- Actions Column -->
   <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
     {% if user.is_authenticated %}
-    <div class="flex justify-center items-center h-8 space-x-2">
-      {% if transaction.status == 'pending' %}
+    <div
+      class="flex {% if not user.is_staff %}justify-center{% else %}justify-center items-center h-8 space-x-2{% endif %}"
+    >
+      {% if transaction.status == 'pending' and user.is_staff %}
       <!-- Approve Button -->
       <button
         class="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded"
@@ -83,10 +85,9 @@
           />
         </svg>
       </button>
-      {% else %}
+      {% elif user.is_staff %}
       <div class="w-7 h-7"></div>
-      {% endif %}
-
+      {% endif %} {% if user.is_staff %}
       <!-- Flag Button -->
       <button
         class="bg-amber-500 hover:bg-amber-600 text-white p-1.5 rounded"
@@ -109,6 +110,7 @@
           />
         </svg>
       </button>
+      {% endif %}
 
       <!-- History Button -->
       <a
